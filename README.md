@@ -1,2 +1,2 @@
 # Pattern Recognition
- 2110573 Pattern Recognition
+ 2110573 Pattern Recognition (Machine Learning)
