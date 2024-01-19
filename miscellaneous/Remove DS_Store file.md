@@ -1,3 +1,5 @@
+https://gist.github.com/lohenyumnam/2b127b9c3d1435dc12a33613c44e6308
+
 If .DS_Store was never added to your git repository, simply add it to your .gitignore file.
 
 If you don't have one, create a file called
