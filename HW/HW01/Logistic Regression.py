@@ -57,3 +57,55 @@ print("Confusion Matrix:\n", conf_mat)
 #     "Survived": y_pred[0]
 # })
 # prediction_data.to_csv("submission.csv", index=False)
+
+# ---------------------------------------------------------------------- #
+
+# Linear Regression classifier using Matrix Inversion
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# def GradientDescent(theta, learning_rate, num_iterations, X, y):
+#     cost = []
+#     for i in range(num_iterations):
+#         y_linear = np.dot(X, theta[1:]) + theta[0]
+#         # h = sigmoid(y_linear)
+#         gradient = np.dot((y - y_linear), X)
+#         # update rule
+#         # theta = theta + learning_rate * gradient
+#         theta[0] = theta[0] + learning_rate * (y - y_linear).sum()
+#         theta[1:] = theta[1:] + learning_rate * gradient
+        
+#         cost.append(CostFunction (theta, X, y))
+#     return theta, cost # best theta
+
+def predict(X, theta):
+    y_linear = np.dot(X, theta[1:]) + theta[0]
+    # h = sigmoid(y_linear)
+    return np.where(y_linear >= 0.5, 1, 0)
+
+def CostFunction (theta, X, y):
+    y_linear = np.dot(X, theta)
+    errors = y - y_linear
+    cost = np.sum(errors**2) / m
+    return cost
+
+# Main function
+X = data
+y = np.array(train['Survived'].values)
+m, n = data.shape # m = number of sample, n = number of features
+
+# Initialize theta
+theta = np.zeros(1+n)
+
+# Set hyperparameters
+learning_rate = 0.01
+num_iterations = 1000
+
+# Gradient Descent # to minimize Cost Function
+# theta, cost = GradientDescent(theta, learning_rate, num_iterations, X, y) # best theta
+theta = np.linalg.inv(X.T @ X) @ X.T @ y
+# Calculate the cost
+cost = CostFunction(theta, X, y)
+print(f'Cost(MSE): {cost}')
