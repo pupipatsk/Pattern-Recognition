@@ -19,10 +19,10 @@ class SimpleBayesClassifier:
         None: This method does not return anything as it is a constructor.
         """
 
-        self.n_pos =
-        self.n_neg =
-        self.prior_pos = 
-        self.prior_neg =
+        self.n_pos = n_pos
+        self.n_neg = n_neg
+        self.prior_pos = n_pos / (n_pos+n_neg)
+        self.prior_neg = n_neg / (n_pos+n_neg)
 
     def fit_params(self, x, y, n_bins = 10):
 
@@ -40,15 +40,21 @@ class SimpleBayesClassifier:
         Each tuple in the list contains the bins and edges of the histogram for a feature.
         """
 
-        self.stay_params = [(None, None) for _ in range(x.shape[1])]
-        self.leave_params = [(None, None) for _ in range(x.shape[1])]
-
+        self.stay_params = [(None, None) for _ in range(x.shape[1])] # class 0
+        self.leave_params = [(None, None) for _ in range(x.shape[1])] # class 1
         # INSERT CODE HERE
+        for col in range(x.shape[1]):
+            hist_stay, bin_edges_stay = np.histogram(x[y == 0, col], bins=n_bins)
+            hist_leave, bin_edges_leave = np.histogram(x[y == 1, col], bins=n_bins)
+
+            self.stay_params[col] = (hist_stay, bin_edges_stay)
+            self.leave_params[col] = (hist_leave, bin_edges_leave)
         
         return self.stay_params, self.leave_params
 
+    
     def predict(self, x, thresh = 0):
-
+        
         """
         Predicts the class labels for the given samples using the non-parametric model.
 
@@ -59,10 +65,8 @@ class SimpleBayesClassifier:
         Returns:
         result (list): A list of predicted class labels (0 or 1) for each sample in the feature matrix.
         """
-
+        
         y_pred = []
-
-        # INSERT CODE HERE
 
         return y_pred
     
@@ -81,11 +85,16 @@ class SimpleBayesClassifier:
         Each tuple in the list contains the mean and standard deviation for a feature.
         """
 
-        self.gaussian_stay_params = [(0, 0) for _ in range(x.shape[1])]
-        self.gaussian_leave_params = [(0, 0) for _ in range(x.shape[1])]
+        self.gaussian_stay_params = []
+        self.gaussian_leave_params = []
 
         # INSERT CODE HERE
-        
+        for col in range(x.shape[1]):
+            stay_params = (np.nanmean(x[y == 0, col]), np.nanstd(x[y == 0, col]))
+            leave_params = (np.nanmean(x[y == 1, col]), np.nanstd(x[y == 1, col]))
+            self.gaussian_stay_params.append(stay_params)
+            self.gaussian_leave_params.append(leave_params)
+                
         return self.gaussian_stay_params, self.gaussian_leave_params
     
     def gaussian_predict(self, x, thresh = 0):
@@ -104,5 +113,24 @@ class SimpleBayesClassifier:
         y_pred = []
 
         # INSERT CODE HERE
+        for row in range(x.shape[0]):
+            lH = np.log(self.prior_pos) - np.log(self.prior_neg) # + sigma(...)
+            for col in range(x.shape[1]):
+                stay_param = self.gaussian_stay_params[col] # (mu_stay, sd_stay)
+                leave_param = self.gaussian_leave_params[col] # (mu_leave, sd_leave)
+                
+                llh_stay = np.log(stats.norm(stay_param[0],stay_param[1]).pdf(x[row][col]))
+                llh_leave = np.log(stats.norm(leave_param[0],leave_param[1]).pdf(x[row][col]))
+                
+                lH += (llh_leave - llh_stay)
+             
+            y_pred.append(lH)   
+            # # Make a prediction
+            # if lH > thresh:
+            #     print('lH',lH)
+            #     y_pred.append(1)  # Leave
+            # else:
+            #     print('lH',lH)
+            #     y_pred.append(0)  # Stay
 
         return y_pred
