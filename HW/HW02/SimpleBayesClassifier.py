@@ -40,15 +40,15 @@ class SimpleBayesClassifier:
         Each tuple in the list contains the bins and edges of the histogram for a feature.
         """
 
-        self.stay_params = [(None, None) for _ in range(x.shape[1])] # class 0
-        self.leave_params = [(None, None) for _ in range(x.shape[1])] # class 1
+        self.stay_params = [] # class 0
+        self.leave_params = [] # class 1
         # INSERT CODE HERE
         for col in range(x.shape[1]):
             hist_stay, bin_edges_stay = np.histogram(x[y == 0, col], bins=n_bins)
             hist_leave, bin_edges_leave = np.histogram(x[y == 1, col], bins=n_bins)
 
-            self.stay_params[col] = (hist_stay, bin_edges_stay)
-            self.leave_params[col] = (hist_leave, bin_edges_leave)
+            self.stay_params.append( (hist_stay, bin_edges_stay) )
+            self.leave_params.append( (hist_leave, bin_edges_leave) )
         
         return self.stay_params, self.leave_params
 
@@ -67,7 +67,32 @@ class SimpleBayesClassifier:
         """
         
         y_pred = []
+        for row in range(x.shape[0]):
+            lH = np.log(self.prior_pos) - np.log(self.prior_neg)
+            for col in range(x.shape[1]):
+                if(np.isnan(x[row][col])): continue
+                
+                stay_param = self.stay_params[col]  # (hist_stay, bin_edges_stay)
+                hist_stay = stay_param[0]
+                bin_edges_stay = stay_param[1]
+                bin_index_stay = np.searchsorted(bin_edges_stay, x[row][col], side="right")-1
 
+                leave_param = self.leave_params[col]  # (hist_leave, bin_edges_leave)
+                hist_leave = leave_param[0]
+                bin_edges_leave = leave_param[1]
+                bin_index_leave = np.searchsorted(bin_edges_leave, x[row][col], side="right")-1
+
+                # Calculate the log likelihood for each category
+                llh_stay = np.log(hist_stay[bin_index_stay] / np.sum(hist_stay)) if hist_stay[bin_index_stay] > 0 else 1e-10
+                llh_leave = np.log(hist_leave[bin_index_leave] / np.sum(hist_leave)) if hist_leave[bin_index_leave] > 0 else 1e-10
+
+                lH += (llh_leave - llh_stay)
+
+            # Make a prediction based on log likelihood ratio
+            if lH > thresh:
+                y_pred.append(1)  # Leave
+            else:
+                y_pred.append(0)  # Stay
         return y_pred
     
     def fit_gaussian_params(self, x, y):
@@ -92,6 +117,7 @@ class SimpleBayesClassifier:
         for col in range(x.shape[1]):
             stay_params = (np.nanmean(x[y == 0, col]), np.nanstd(x[y == 0, col]))
             leave_params = (np.nanmean(x[y == 1, col]), np.nanstd(x[y == 1, col]))
+            
             self.gaussian_stay_params.append(stay_params)
             self.gaussian_leave_params.append(leave_params)
                 
@@ -116,21 +142,25 @@ class SimpleBayesClassifier:
         for row in range(x.shape[0]):
             lH = np.log(self.prior_pos) - np.log(self.prior_neg) # + sigma(...)
             for col in range(x.shape[1]):
+                if np.isnan(x[row][col]): continue
+                
                 stay_param = self.gaussian_stay_params[col] # (mu_stay, sd_stay)
                 leave_param = self.gaussian_leave_params[col] # (mu_leave, sd_leave)
                 
-                llh_stay = np.log(stats.norm(stay_param[0],stay_param[1]).pdf(x[row][col]))
-                llh_leave = np.log(stats.norm(leave_param[0],leave_param[1]).pdf(x[row][col]))
+                l_stay = stats.norm(stay_param[0],stay_param[1]).pdf(x[row][col])
+                if l_stay == 0: l_stay = 1e-10
+                llh_stay = np.log(l_stay)
+                
+                l_leave = stats.norm(leave_param[0],leave_param[1]).pdf(x[row][col])
+                if l_leave == 0: l_leave = 1e-10
+                llh_leave = np.log(l_leave)
                 
                 lH += (llh_leave - llh_stay)
              
-            y_pred.append(lH)   
-            # # Make a prediction
-            # if lH > thresh:
-            #     print('lH',lH)
-            #     y_pred.append(1)  # Leave
-            # else:
-            #     print('lH',lH)
-            #     y_pred.append(0)  # Stay
+            # Make a prediction
+            if lH > thresh:
+                y_pred.append(1)  # Leave
+            else: 
+                y_pred.append(0)  # Stay
 
         return y_pred
