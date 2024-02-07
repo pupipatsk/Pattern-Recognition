@@ -37,16 +37,13 @@ class SimpleBayesClassifier:
         Returns:
         (stay_params, leave_params): A tuple containing two lists of tuples, 
         one for 'stay' parameters and one for 'leave' parameters.
-        Each tuple in the list contains the bins and edges of the histogram for a feature.
+        Each tuple in the list contains the dens and edges of the histogram for a feature.
         """
 
-        self.stay_params = [] # class 0 [(bins,edge)]
-        self.leave_params = [] # class 1 [(bins,edge)]
+        self.stay_params = [] # class 0 [(dens,edge)]
+        self.leave_params = [] # class 1 [(dens,edge)]
         # INSERT CODE HERE
         for col in range(x.shape[1]):
-            # hist_stay, bin_edges_stay = np.histogram(x[y == 0, col], bins=n_bins)
-            # hist_leave, bin_edges_leave = np.histogram(x[y == 1, col], bins=n_bins)
-
             dens_stay, bin_edges_stay = np.histogram(x[y == 0, col], bins=n_bins,density=True)
             dens_leave, bin_edges_leave = np.histogram(x[y == 1, col], bins=n_bins,density=True)
 
@@ -87,7 +84,6 @@ class SimpleBayesClassifier:
                 elif bin_index_stay == len(bin_edges_stay)-1: 
                     bin_index_stay -= 1
                 
-
                 dens_leave, bin_edges_leave = self.leave_params[col]  # (dens_leave, bin_edges_leave)
                 bin_index_leave = np.searchsorted(bin_edges_leave, x[row][col], side="right")
                 if np.float64(x[row][col]) < np.float64(bin_edges_leave[1]): 
@@ -95,21 +91,7 @@ class SimpleBayesClassifier:
                 elif bin_index_leave == len(bin_edges_leave)-1: 
                     bin_index_leave -= 1
                 
-                # dens_stay, bin_edges_stay = self.stay_params[col] # (hist_stay, bin_edges_stay)
-                # # dens_stay, dens_edges_stay = np.histogram(hist_stay, bins=bin_edges_stay.size-1, density=True)
-                # bin_index_stay = np.digitize(x[row][col], bin_edges_stay)
-                
-                # dens_leave, bin_edges_leave = self.stay_params[col] # (hist_stay, bin_edges_stay)
-                # # dens_leave, dens_edges_leave = np.histogram(hist_leave, bins=bin_edges_leave.size-1, density=True)
-                # bin_index_leave = np.digitize(x[row][col], bin_edges_leave)
-                
                 # Calculate the log likelihood for each category
-                print("Debug")
-                print("x[row][col]:",x[row][col])
-                print("dens_stay:",dens_stay)
-                print("bin_edges_stay:",bin_edges_stay)
-                print("bin_index_stay:",bin_index_stay)
-                print("\n")
                 l_stay = dens_stay[bin_index_stay]
                 l_leave = dens_leave[bin_index_leave]
                 
@@ -178,15 +160,13 @@ class SimpleBayesClassifier:
                 leave_param = self.gaussian_leave_params[col] # (mu_leave, sd_leave)
                 
                 l_stay = stats.norm(stay_param[0],stay_param[1]).pdf(x[row][col])
-                if l_stay == 0: l_stay = 1e-10
                 llh_stay = np.log(l_stay)
                 
                 l_leave = stats.norm(leave_param[0],leave_param[1]).pdf(x[row][col])
-                if l_leave == 0: l_leave = 1e-10
                 llh_leave = np.log(l_leave)
                 
                 lH += (llh_leave - llh_stay)
-             
+                
             # Make a prediction
             if lH > thresh:
                 y_pred.append(1)  # Leave
