@@ -107,6 +107,40 @@ class SimpleBayesClassifier:
                 y_pred.append(0)  # Stay
         return y_pred
     
+    def predict_proba(self, x, thresh = 0):
+        lh_lst = [] # probabilities
+        for row in range(x.shape[0]):
+            lH = np.log(self.prior_pos) - np.log(self.prior_neg)
+            for col in range(x.shape[1]):
+                if(np.isnan(x[row][col])): continue
+                
+                dens_stay, bin_edges_stay = self.stay_params[col]  # (dens_stay, bin_edges_stay)
+                bin_index_stay = np.searchsorted(bin_edges_stay, x[row][col], side="right")
+                if np.float64(x[row][col]) < np.float64(bin_edges_stay[1]):
+                    bin_index_stay = 0
+                elif bin_index_stay == len(bin_edges_stay)-1: 
+                    bin_index_stay -= 1
+                
+                dens_leave, bin_edges_leave = self.leave_params[col]  # (dens_leave, bin_edges_leave)
+                bin_index_leave = np.searchsorted(bin_edges_leave, x[row][col], side="right")
+                if np.float64(x[row][col]) < np.float64(bin_edges_leave[1]): 
+                    bin_index_leave = 0
+                elif bin_index_leave == len(bin_edges_leave)-1: 
+                    bin_index_leave -= 1
+                
+                # Calculate the log likelihood for each category
+                l_stay = dens_stay[bin_index_stay]
+                l_leave = dens_leave[bin_index_leave]
+                
+                llh_stay = np.log(l_stay if l_stay != 0 else 1e-10)
+                llh_leave = np.log(l_leave if l_leave != 0 else 1e-10)
+
+                lH += (llh_leave - llh_stay)
+            
+            lh_lst.append(lH)
+        
+        return lh_lst
+    
     def fit_gaussian_params(self, x, y):
 
         """
@@ -174,3 +208,28 @@ class SimpleBayesClassifier:
                 y_pred.append(0)  # Stay
 
         return y_pred
+    
+    def gaussian_predict_proba(self, x):
+
+        lh_lst = [] # probabilities
+
+        # INSERT CODE HERE
+        for row in range(x.shape[0]):
+            lH = np.log(self.prior_pos) - np.log(self.prior_neg) # + sigma(...)
+            for col in range(x.shape[1]):
+                if np.isnan(x[row][col]): continue
+                
+                stay_param = self.gaussian_stay_params[col] # (mu_stay, sd_stay)
+                leave_param = self.gaussian_leave_params[col] # (mu_leave, sd_leave)
+                
+                l_stay = stats.norm(stay_param[0],stay_param[1]).pdf(x[row][col])
+                llh_stay = np.log(l_stay)
+                
+                l_leave = stats.norm(leave_param[0],leave_param[1]).pdf(x[row][col])
+                llh_leave = np.log(l_leave)
+                
+                lH += (llh_leave - llh_stay)
+            
+            lh_lst.append(lH)
+            
+        return lh_lst
