@@ -40,15 +40,23 @@ class SimpleBayesClassifier:
         Each tuple in the list contains the bins and edges of the histogram for a feature.
         """
 
-        self.stay_params = [] # class 0
-        self.leave_params = [] # class 1
+        self.stay_params = [] # class 0 [(bins,edge)]
+        self.leave_params = [] # class 1 [(bins,edge)]
         # INSERT CODE HERE
         for col in range(x.shape[1]):
-            hist_stay, bin_edges_stay = np.histogram(x[y == 0, col], bins=n_bins)
-            hist_leave, bin_edges_leave = np.histogram(x[y == 1, col], bins=n_bins)
+            # hist_stay, bin_edges_stay = np.histogram(x[y == 0, col], bins=n_bins)
+            # hist_leave, bin_edges_leave = np.histogram(x[y == 1, col], bins=n_bins)
 
-            self.stay_params.append( (hist_stay, bin_edges_stay) )
-            self.leave_params.append( (hist_leave, bin_edges_leave) )
+            dens_stay, bin_edges_stay = np.histogram(x[y == 0, col], bins=n_bins,density=True)
+            dens_leave, bin_edges_leave = np.histogram(x[y == 1, col], bins=n_bins,density=True)
+
+            np.put(bin_edges_stay, 0, -np.inf)
+            np.put(bin_edges_stay, -1, np.inf)
+            np.put(bin_edges_leave, 0, -np.inf)
+            np.put(bin_edges_leave, -1, np.inf)
+            
+            self.stay_params.append( (dens_stay, bin_edges_stay) )
+            self.leave_params.append( (dens_leave, bin_edges_leave) )
         
         return self.stay_params, self.leave_params
 
@@ -72,19 +80,41 @@ class SimpleBayesClassifier:
             for col in range(x.shape[1]):
                 if(np.isnan(x[row][col])): continue
                 
-                stay_param = self.stay_params[col]  # (hist_stay, bin_edges_stay)
-                hist_stay = stay_param[0]
-                bin_edges_stay = stay_param[1]
-                bin_index_stay = np.searchsorted(bin_edges_stay, x[row][col], side="right")-1
+                dens_stay, bin_edges_stay = self.stay_params[col]  # (dens_stay, bin_edges_stay)
+                bin_index_stay = np.searchsorted(bin_edges_stay, x[row][col], side="right")
+                if np.float64(x[row][col]) < np.float64(bin_edges_stay[1]):
+                    bin_index_stay = 0
+                elif bin_index_stay == len(bin_edges_stay)-1: 
+                    bin_index_stay -= 1
+                
 
-                leave_param = self.leave_params[col]  # (hist_leave, bin_edges_leave)
-                hist_leave = leave_param[0]
-                bin_edges_leave = leave_param[1]
-                bin_index_leave = np.searchsorted(bin_edges_leave, x[row][col], side="right")-1
-
+                dens_leave, bin_edges_leave = self.leave_params[col]  # (dens_leave, bin_edges_leave)
+                bin_index_leave = np.searchsorted(bin_edges_leave, x[row][col], side="right")
+                if np.float64(x[row][col]) < np.float64(bin_edges_leave[1]): 
+                    bin_index_leave = 0
+                elif bin_index_leave == len(bin_edges_leave)-1: 
+                    bin_index_leave -= 1
+                
+                # dens_stay, bin_edges_stay = self.stay_params[col] # (hist_stay, bin_edges_stay)
+                # # dens_stay, dens_edges_stay = np.histogram(hist_stay, bins=bin_edges_stay.size-1, density=True)
+                # bin_index_stay = np.digitize(x[row][col], bin_edges_stay)
+                
+                # dens_leave, bin_edges_leave = self.stay_params[col] # (hist_stay, bin_edges_stay)
+                # # dens_leave, dens_edges_leave = np.histogram(hist_leave, bins=bin_edges_leave.size-1, density=True)
+                # bin_index_leave = np.digitize(x[row][col], bin_edges_leave)
+                
                 # Calculate the log likelihood for each category
-                llh_stay = np.log(hist_stay[bin_index_stay] / np.sum(hist_stay)) if hist_stay[bin_index_stay] > 0 else 1e-10
-                llh_leave = np.log(hist_leave[bin_index_leave] / np.sum(hist_leave)) if hist_leave[bin_index_leave] > 0 else 1e-10
+                print("Debug")
+                print("x[row][col]:",x[row][col])
+                print("dens_stay:",dens_stay)
+                print("bin_edges_stay:",bin_edges_stay)
+                print("bin_index_stay:",bin_index_stay)
+                print("\n")
+                l_stay = dens_stay[bin_index_stay]
+                l_leave = dens_leave[bin_index_leave]
+                
+                llh_stay = np.log(l_stay if l_stay != 0 else 1e-10)
+                llh_leave = np.log(l_leave if l_leave != 0 else 1e-10)
 
                 lH += (llh_leave - llh_stay)
 
