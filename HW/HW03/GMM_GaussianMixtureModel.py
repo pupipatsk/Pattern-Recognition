@@ -128,3 +128,16 @@ class GMM:
                 self.print_iteration()
 
         return log_prob_list
+    
+if __name__ == "__main__":
+    num_iterations = 3
+    num_mixture = 3
+    mixture_weight = [1] * num_mixture # m # Initialize the mixture weights
+    mean_params = np.array([[3,3], [2,2], [-3,-3]], dtype = float)
+    cov_params = np.array([np.eye(2)] * num_mixture)
+
+    X, Y = np.array([1, 3, 2, 8, 6, 7, -3, -2, -7]), np.array([2, 3, 2, 8, 6, 7, -3, -4, -7])
+    data = np.vstack([X,Y]).T
+
+    gmm = GMM(mixture_weight, mean_params, cov_params)
+    log_prob_list = gmm.perform_em_iterations(data, num_iterations)
