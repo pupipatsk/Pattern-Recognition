@@ -13,3 +13,9 @@ HW/HW03/HW3_BeeTheepob.ipynb
 miscellaneous/github_PoraRee_Pattern-Recognition-main
 HW/HW05/dataset
 HW/HW05/wandb
+HW/HW05/model_cnn.pth.tar
+HW/HW05/model_ff.pth.tar
+HW/HW05/model_ff_dropout.pth.tar
+HW/HW05/model_ff_my_scheduler.pth.tar
+HW/HW05/model_gru.pth.tar
+HW/HW05/nowcastingHWdataset.tar.gz
