@@ -1,6 +1,7 @@
 # Pattern Recognition
-2110573 Pattern Recognition (Machine Learning)
-Instructor: Ekapol Chuangsuwanich https://github.com/ekapolc/pattern_2024
+2110573 Pattern Recognition (Machine Learning)\
+Instructor: Ekapol Chuangsuwanich\
+https://github.com/ekapolc/pattern_2024
 ## Course Outline
 
 - **Introduction**
